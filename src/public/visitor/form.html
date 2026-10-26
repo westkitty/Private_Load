@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Leaving</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0b0e;
+      color: #f1f3f8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .header {
+      text-align: center;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+    .header p {
+      font-size: 13px;
+      color: #7b8190;
+      margin-top: 4px;
+    }
+    .card {
+      background: #14161d;
+      border: 1px solid #232733;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9aa1b2;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+    textarea {
+      width: 100%;
+      height: 96px;
+      background: #0d0f15;
+      border: 1px solid #2d3345;
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 15px;
+      padding: 12px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+    textarea:focus { border-color: #e63946; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      background: #1a1d27;
+      border: 1px solid #2d3345;
+      color: #cbd3e2;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+    .chip.selected {
+      background: #e63946;
+      border-color: #ff4d5a;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .load-stepper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-step {
+      background: #1e2230;
+      border: 1px solid #2f3649;
+      color: #fff;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .load-input {
+      width: 54px;
+      height: 38px;
+      background: #0d0f15;
+      border: 1px solid #2f3649;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      border-radius: 8px;
+      outline: none;
+    }
+    .audio-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0d0f15;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #252a3a;
+    }
+    .audio-btn {
+      background: #232839;
+      border: 1px solid #363e56;
+      color: #e2e8f0;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .audio-btn.recording {
+      background: #991b1b;
+      border-color: #dc2626;
+      color: #fff;
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+    .audio-status { font-size: 12px; color: #8892b0; }
+    .submit-container {
+      margin-top: 16px;
+    }
+    .btn-submit {
+      width: 100%;
+      background: #e63946;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(230, 57, 70, 0.4);
+    }
+    .btn-submit:active { transform: scale(0.98); }
+    .footer-note {
+      text-align: center;
+      font-size: 11px;
+      color: #555d72;
+      margin-top: 8px;
+    }
+    #confirmation-screen {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+      margin: auto;
+    }
+    .check-icon {
+      width: 64px;
+      height: 64px;
+      background: #10b981;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: white;
+    }
+    .status-err {
+      color: #f87171;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="form-container">
+    <div class="header">
+      <h1 id="session-label">LEAVING</h1>
+      <p>Anonymous drop for the host.</p>
+    </div>
+
+    <form id="visitor-form" class="card">
+      <div>
+        <div class="field-label">
+          <span>Note</span>
+          <span id="char-counter">0/280</span>
+        </div>
+        <textarea id="body" placeholder="Drop a thought or leave blank..." maxlength="280"></textarea>
+      </div>
+
+      <div>
+        <div class="field-label" style="margin-bottom: 8px;">Tags</div>
+        <div class="chips" id="tag-chips"></div>
+      </div>
+
+      <div class="row">
+        <div class="field-label" style="margin: 0;">Load #</div>
+        <div class="load-stepper">
+          <button type="button" class="btn-step" id="btn-dec">-</button>
+          <input type="number" id="load-number" class="load-input" min="1" max="999" value="" placeholder="auto" />
+          <button type="button" class="btn-step" id="btn-inc">+</button>
+        </div>
+      </div>
+
+      <div class="audio-section">
+        <span class="audio-status" id="audio-status">Voice note optional</span>
+        <button type="button" class="audio-btn" id="record-btn">
+          <span id="record-icon">🎤</span>
+          <span id="record-text">Record</span>
+        </button>
+      </div>
+
+      <div class="status-err" id="error-msg"></div>
+
+      <div class="submit-container">
+        <button type="submit" class="btn-submit" id="submit-btn">Submit</button>
+      </div>
+    </form>
+
+    <div class="footer-note">No account. No tracking. Recorded directly to host.</div>
+  </div>
+
+  <div id="confirmation-screen">
+    <div class="check-icon">✓</div>
+    <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">Got it.</h2>
+    <p style="color: #8892b0; font-size: 14px;">Your comment logged to the host's sequence.</p>
+    <p style="color: #4b5563; font-size: 12px; margin-top: 24px;">You can safely close this tab.</p>
+  </div>
+
+  <script>
+    (function() {
+      const pathParts = window.location.pathname.split('/');
+      const token = pathParts[pathParts.length - 1];
+      const charCounter = document.getElementById('char-counter');
+      const bodyInput = document.getElementById('body');
+      const tagChipsContainer = document.getElementById('tag-chips');
+      const loadInput = document.getElementById('load-number');
+      const btnDec = document.getElementById('btn-dec');
+      const btnInc = document.getElementById('btn-inc');
+      const form = document.getElementById('visitor-form');
+      const recordBtn = document.getElementById('record-btn');
+      const recordIcon = document.getElementById('record-icon');
+      const recordText = document.getElementById('record-text');
+      const audioStatus = document.getElementById('audio-status');
+      const errorMsg = document.getElementById('error-msg');
+      const formContainer = document.getElementById('form-container');
+      const confirmScreen = document.getElementById('confirmation-screen');
+
+      let selectedTags = new Set();
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let recordedAudioBlob = null;
+      let recordingTimer = null;
+      let recordSeconds = 0;
+
+      // Character counter
+      bodyInput.addEventListener('input', () => {
+        charCounter.textContent = `${bodyInput.value.length}/280`;
+      });
+
+      // Stepper
+      btnDec.addEventListener('click', () => {
+        let val = parseInt(loadInput.value, 10);
+        if (isNaN(val) || val <= 1) {
+          loadInput.value = '';
+        } else {
+          loadInput.value = val - 1;
+        }
+      });
+      btnInc.addEventListener('click', () => {
+        let val = parseInt(loadInput.value, 10);
+        if (isNaN(val)) {
+          loadInput.value = 1;
+        } else {
+          loadInput.value = val + 1;
+        }
+      });
+
+      // Fetch session configuration for this token
+      fetch(`/api/visitor/session/${token}`)
+        .then(r => {
+          if (!r.ok) throw new Error('Session unavailable or token expired');
+          return r.json();
+        })
+        .then(data => {
+          if (data.label) {
+            document.getElementById('session-label').textContent = data.label.toUpperCase();
+          }
+          if (data.max_chars) {
+            bodyInput.maxLength = data.max_chars;
+            charCounter.textContent = `0/${data.max_chars}`;
+          }
+          if (Array.isArray(data.enabled_tags)) {
+            data.enabled_tags.forEach(tag => {
+              const chip = document.createElement('div');
+              chip.className = 'chip';
+              chip.textContent = tag;
+              chip.addEventListener('click', () => {
+                if (selectedTags.has(tag)) {
+                  selectedTags.delete(tag);
+                  chip.classList.remove('selected');
+                } else {
+                  selectedTags.add(tag);
+                  chip.classList.add('selected');
+                }
+              });
+              tagChipsContainer.appendChild(chip);
+            });
+          }
+          if (data.suggested_load_number) {
+            loadInput.placeholder = `#${data.suggested_load_number}`;
+          }
+        })
+        .catch(err => {
+          errorMsg.textContent = err.message;
+          errorMsg.style.display = 'block';
+        });
+
+      // Voice note handling
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        recordBtn.addEventListener('click', async () => {
+          if (mediaRecorder && mediaRecorder.state === 'recording') {
+            // Stop recording
+            mediaRecorder.stop();
+            clearInterval(recordingTimer);
+            recordBtn.classList.remove('recording');
+            recordIcon.textContent = '✓';
+            recordText.textContent = 'Ready';
+            audioStatus.textContent = `Voice note saved (${recordSeconds}s)`;
+          } else {
+            // Start recording
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              mediaRecorder = new MediaRecorder(stream);
+              audioChunks = [];
+              recordSeconds = 0;
+
+              mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+              };
+
+              mediaRecorder.onstop = () => {
+                recordedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                stream.getTracks().forEach(track => track.stop());
+              };
+
+              mediaRecorder.start();
+              recordBtn.classList.add('recording');
+              recordIcon.textContent = '⏹';
+              recordText.textContent = 'Stop';
+              audioStatus.textContent = 'Recording 0s...';
+
+              recordingTimer = setInterval(() => {
+                recordSeconds++;
+                audioStatus.textContent = `Recording ${recordSeconds}s...`;
+                if (recordSeconds >= 60) {
+                  recordBtn.click();
+                }
+              }, 1000);
+            } catch (err) {
+              audioStatus.textContent = 'Mic unavailable';
+            }
+          }
+        });
+      } else {
+        recordBtn.style.display = 'none';
+        audioStatus.textContent = 'Audio not supported';
+      }
+
+      // Form submit
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorMsg.style.display = 'none';
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        try {
+          const formData = new FormData();
+          formData.append('body', bodyInput.value);
+          formData.append('tags', JSON.stringify(Array.from(selectedTags)));
+          if (loadInput.value) {
+            formData.append('load_number', loadInput.value);
+          }
+          if (recordedAudioBlob) {
+            formData.append('voice_note', recordedAudioBlob, 'voice.webm');
+          }
+
+          const res = await fetch(`/api/visitor/submit/${token}`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || 'Submission failed');
+          }
+
+          formContainer.style.display = 'none';
+          confirmScreen.style.display = 'block';
+        } catch (err) {
+          errorMsg.textContent = err.message || 'Failed to submit';
+          errorMsg.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

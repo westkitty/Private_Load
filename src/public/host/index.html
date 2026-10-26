@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Leaving QR — Host</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- Unlock Modal / Screen -->
+  <div id="unlock-screen" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Host Vault Locked</h2>
+        <p>Enter your private passphrase to decrypt records.</p>
+      </div>
+      <form id="unlock-form">
+        <input type="password" id="unlock-passphrase" placeholder="Passphrase" required autocomplete="current-password" />
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 14px;">Unlock</button>
+        <div id="unlock-error" class="error-text"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div class="app-layout">
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="status-indicator" id="live-indicator"></div>
+        <span class="app-title" id="active-session-label">No Active Session</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" id="btn-quick-qr" title="Full Screen QR">📱 QR</button>
+        <button class="btn-icon" id="btn-lock" title="Lock App">🔒</button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- 1. Active Session Screen -->
+      <section id="screen-active" class="screen active">
+        <!-- Start Session Prompt if no session -->
+        <div id="no-session-card" class="card empty-card" style="display: none;">
+          <h3>Ready to host?</h3>
+          <p>Start a session to surface a scannable Leaving QR code for guys heading out.</p>
+          <div class="form-group" style="margin-top: 16px;">
+            <label>Session Label</label>
+            <input type="text" id="start-label" placeholder="e.g. open, hosting, cruising..." value="open" />
+          </div>
+          <div class="form-group">
+            <label>QR Mode</label>
+            <select id="start-qr-mode">
+              <option value="session-long" selected>Session-Long (every guy scans same code)</option>
+              <option value="single-use">Single-Use (rotates automatically each submit)</option>
+              <option value="time-boxed">Time-Boxed (expires in 15 min)</option>
+              <option value="reusable-door-token">Door Token (reusable static door sign)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-block" id="btn-start-session" style="margin-top: 16px;">Open Session & Surface QR</button>
+        </div>
+
+        <!-- Active Session Controls & Summary -->
+        <div id="active-session-content">
+          <!-- Totals Bar -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="stat-total-loads">0</div>
+              <div class="stat-lbl">Loads</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="stat-total-comments">0</div>
+              <div class="stat-lbl">Comments</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="stat-total-proof">0</div>
+              <div class="stat-lbl">Proof / Photos</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="stat-session-timer">00:00</div>
+              <div class="stat-lbl">Elapsed</div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="action-bar">
+            <button class="btn btn-action" id="btn-add-load">
+              <span class="btn-icon-symbol">➕</span>
+              <span>+1 Load</span>
+            </button>
+            <button class="btn btn-action" id="btn-view-qr-large">
+              <span class="btn-icon-symbol">🔲</span>
+              <span>Leaving QR</span>
+            </button>
+            <button class="btn btn-action btn-danger" id="btn-end-session">
+              <span class="btn-icon-symbol">⏹</span>
+              <span>End & Archive</span>
+            </button>
+          </div>
+
+          <!-- Live Entries Section -->
+          <div class="section-title-row">
+            <h4>Sequential Uses</h4>
+            <div class="feed-tools">
+              <button class="btn-sm" id="btn-simulate-debug" title="Simulate Visitor Drop">🧪 Test Drop</button>
+            </div>
+          </div>
+
+          <div class="entry-list" id="active-entry-list">
+            <div class="loading-state">Loading guestbook...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. QR Full Screen -->
+      <section id="screen-qr" class="screen">
+        <div class="qr-screen-container">
+          <div class="qr-mode-badge" id="qr-screen-mode">Session-Long</div>
+          <div class="qr-box">
+            <img id="qr-screen-img" src="" alt="Leaving QR" />
+          </div>
+          <div class="qr-timer" id="qr-screen-timer">Session Elapsed: 00:00</div>
+          <div class="qr-stats-row">
+            <div><strong id="qr-screen-loads">0</strong> loads</div>
+            <div>•</div>
+            <div><strong id="qr-screen-comments">0</strong> notes</div>
+          </div>
+          <div class="qr-link-copy">
+            <span id="qr-screen-url">http://...</span>
+            <button class="btn-sm" id="btn-copy-url">Copy Link</button>
+          </div>
+          <div class="qr-action-row">
+            <button class="btn btn-secondary" id="btn-rotate-token">🔄 Rotate Token</button>
+            <button class="btn btn-secondary" id="btn-open-door-card">🖨 Door Card</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Guestbook Screen (Detailed Filters & Search) -->
+      <section id="screen-guestbook" class="screen">
+        <div class="filter-bar">
+          <input type="text" id="guestbook-search" placeholder="Search notes, tags..." />
+          <div class="filter-chips" id="filter-tag-chips"></div>
+        </div>
+
+        <div class="entry-list" id="guestbook-full-list">
+          <div class="loading-state">Loading guestbook...</div>
+        </div>
+      </section>
+
+      <!-- 4. Archive Screen -->
+      <section id="screen-archive" class="screen">
+        <div class="section-title-row">
+          <h4>Archived Sessions</h4>
+        </div>
+        <div class="archive-list" id="archive-list">
+          <div class="loading-state">Loading archives...</div>
+        </div>
+      </section>
+
+      <!-- 5. Settings Screen -->
+      <section id="screen-settings" class="screen">
+        <div class="card settings-card">
+          <h4>Enabled Tags for Visitors</h4>
+          <p class="subtitle">Select which tag chips appear on the Leaving QR form:</p>
+          <div class="chips-editor" id="tags-editor"></div>
+          <div class="add-tag-row">
+            <input type="text" id="new-tag-input" placeholder="New tag name..." />
+            <button class="btn btn-secondary" id="btn-add-tag">+ Add</button>
+          </div>
+        </div>
+
+        <div class="card settings-card">
+          <h4>Default QR Mode</h4>
+          <select id="setting-default-qr-mode">
+            <option value="session-long">Session-Long (one code for entire session)</option>
+            <option value="single-use">Single-Use (rotates automatically after every scan/submit)</option>
+            <option value="time-boxed">Time-Boxed (expires in 15 min)</option>
+            <option value="reusable-door-token">Door Token (static bedside/door token)</option>
+          </select>
+        </div>
+
+        <div class="card settings-card">
+          <h4>Data & Security</h4>
+          <button class="btn btn-secondary btn-block" id="btn-change-passphrase">Change Passphrase</button>
+          <button class="btn btn-secondary btn-block" id="btn-export-backup" style="margin-top: 10px;">Export Encrypted JSON Backup</button>
+          <label class="btn btn-secondary btn-block" style="margin-top: 10px; text-align: center; cursor: pointer;">
+            <span>Import JSON Backup</span>
+            <input type="file" id="import-backup-file" accept=".json" style="display: none;" />
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav">
+      <button class="nav-tab active" data-target="screen-active">
+        <span class="nav-icon">⚡</span>
+        <span class="nav-label">Active</span>
+      </button>
+      <button class="nav-tab" data-target="screen-qr">
+        <span class="nav-icon">📱</span>
+        <span class="nav-label">QR</span>
+      </button>
+      <button class="nav-tab" data-target="screen-guestbook">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">Guestbook</span>
+      </button>
+      <button class="nav-tab" data-target="screen-archive">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Archive</span>
+      </button>
+      <button class="nav-tab" data-target="screen-settings">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Entry Detail Modal (Host Note & Proof Media Attach) -->
+  <div id="entry-detail-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card detail-modal-card">
+      <div class="modal-header">
+        <h3 id="modal-entry-title">Entry Details</h3>
+        <button class="btn-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body" id="modal-entry-body">
+        <div class="detail-field">
+          <div class="detail-label">Sequential Load #</div>
+          <div class="detail-val" id="modal-load-num">#1</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-label">Visitor Note</div>
+          <div class="detail-text" id="modal-body-text"></div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-label">Tags</div>
+          <div class="chips" id="modal-tags"></div>
+        </div>
+        <div class="detail-field" id="modal-voice-section">
+          <div class="detail-label">Visitor Voice Note</div>
+          <audio controls id="modal-voice-player" style="width: 100%; margin-top: 6px;"></audio>
+        </div>
+        <div class="detail-field">
+          <div class="detail-label">Host Private Proof Photos</div>
+          <div class="proof-gallery" id="modal-proof-gallery"></div>
+          <label class="btn btn-secondary btn-sm" style="margin-top: 8px; display: inline-flex; cursor: pointer;">
+            <span>📸 Attach Proof Photo</span>
+            <input type="file" id="proof-photo-input" accept="image/*" capture="environment" style="display: none;" />
+          </label>
+        </div>
+        <div class="detail-field">
+          <div class="detail-label">Host Private Note</div>
+          <textarea id="modal-host-note" placeholder="Add your private note to this entry..."></textarea>
+          <button class="btn btn-primary btn-sm" id="btn-save-host-note" style="margin-top: 6px;">Save Note</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debug Test Modal -->
+  <div id="debug-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Simulate Visitor Drop</h3>
+        <button class="btn-close" id="btn-close-debug">✕</button>
+      </div>
+      <form id="debug-form">
+        <div class="form-group">
+          <label>Comment text</label>
+          <input type="text" id="debug-body" placeholder="e.g. second load, kept it in" value="second load, kept it in" />
+        </div>
+        <div class="form-group">
+          <label>Quick Presets</label>
+          <div class="chips" id="debug-presets" style="margin-top: 4px;">
+            <div class="chip debug-preset">second load, kept it in</div>
+            <div class="chip debug-preset">tight, took it raw</div>
+            <div class="chip debug-preset">quick</div>
+            <div class="chip debug-preset">came back for another</div>
+            <div class="chip debug-preset">still leaking from the last guy</div>
+            <div class="chip debug-preset">(blank submit)</div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 12px;">Trigger Drop</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
