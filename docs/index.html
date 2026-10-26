@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Leaving QR — Private Sequential Load Guestbook</title>
+  <style>
+    :root {
+      --bg-primary: #0a0b0f;
+      --bg-secondary: #12151e;
+      --bg-card: #181c28;
+      --bg-input: #0e1017;
+      --border-color: #262c3e;
+      --border-light: #323a52;
+      --accent: #e63946;
+      --accent-hover: #ff4d5a;
+      --text-primary: #f0f3fa;
+      --text-secondary: #8d98af;
+      --text-muted: #576175;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(18, 21, 30, 0.95);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .badge-demo {
+      background: #252a3b;
+      color: #93c5fd;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .main-nav {
+      display: flex;
+      background: #11141d;
+      border-bottom: 1px solid var(--border-color);
+      overflow-x: auto;
+    }
+    .nav-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+    }
+    .nav-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(230, 57, 70, 0.05);
+    }
+    .container {
+      max-width: 680px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 16px;
+      flex: 1;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 10px 4px;
+      text-align: center;
+    }
+    .stat-val { font-size: 20px; font-weight: 800; color: #fff; }
+    .stat-lbl { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; margin-top: 2px; }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .btn {
+      background: #202534;
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--accent); border-color: var(--accent-hover); color: #fff; }
+    .btn-danger { background: #4a151b; border-color: #7f1d1d; color: #fca5a5; }
+    .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 6px; }
+
+    .entry-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .entry-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .load-badge {
+      background: var(--accent);
+      color: white;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+    .source-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .source-badge.visitor { background: #1e2638; color: #7dd3fc; }
+    .source-badge.host { background: #3b2c1a; color: #fde047; }
+    .entry-time { font-size: 11px; color: var(--text-muted); }
+    .entry-body { font-size: 15px; line-height: 1.4; color: #fff; margin-bottom: 6px; }
+    .entry-body.empty { color: var(--text-muted); font-style: italic; font-size: 13px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      background: #10121a;
+      border: 1px solid #282f42;
+      color: #cbd5e1;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .chip.selected {
+      background: var(--accent);
+      border-color: var(--accent-hover);
+      color: #fff;
+      font-weight: 600;
+    }
+    .host-note-box {
+      background: #1f1b14;
+      border-left: 3px solid #f59e0b;
+      padding: 6px 10px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 8px;
+      font-size: 13px;
+      color: #fef08a;
+    }
+
+    /* Visitor Form Tab */
+    .visitor-preview-card {
+      background: #14161d;
+      border: 1px solid #232733;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    textarea {
+      width: 100%;
+      height: 90px;
+      background: #0d0f15;
+      border: 1px solid #2d3345;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      padding: 10px;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+    }
+    textarea:focus { border-color: var(--accent); }
+    .step-input {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .step-btn {
+      width: 34px;
+      height: 34px;
+      background: #1e2230;
+      border: 1px solid #2f3649;
+      color: #fff;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .num-val {
+      width: 48px;
+      height: 34px;
+      background: #0d0f15;
+      border: 1px solid #2f3649;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    .btn-submit-visitor {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 14px rgba(230, 57, 70, 0.4);
+    }
+    .code-block {
+      background: #0e1017;
+      border: 1px solid #252a3a;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #93c5fd;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    .qr-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .qr-box {
+      background: #fff;
+      color: #111;
+      padding: 24px;
+      border-radius: 16px;
+      text-align: center;
+      max-width: 320px;
+      width: 100%;
+    }
+    .qr-box canvas {
+      display: block;
+      margin: 12px auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="pulse-dot"></div>
+      <div class="brand-title">Leaving QR</div>
+      <span class="badge-demo">Interactive Demo</span>
+    </div>
+    <a href="https://github.com/westkitty/Private_Load" target="_blank" style="color: #9aa1b2; text-decoration: none; font-size: 13px;">GitHub ↗</a>
+  </header>
+
+  <nav class="main-nav">
+    <button class="nav-btn active" data-tab="tab-host">⚡ Host Guestbook</button>
+    <button class="nav-btn" data-tab="tab-visitor">📱 Visitor Form</button>
+    <button class="nav-btn" data-tab="tab-local">💻 Run Local Server</button>
+  </nav>
+
+  <div class="container">
+    <!-- TAB 1: Host Guestbook -->
+    <div id="tab-host" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="stat-loads">3</div>
+          <div class="stat-lbl">Loads</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-comments">2</div>
+          <div class="stat-lbl">Notes</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-proof">1</div>
+          <div class="stat-lbl">Photos</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-timer">00:14</div>
+          <div class="stat-lbl">Elapsed</div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-primary" id="btn-manual-load">➕ +1 Load</button>
+        <button class="btn" id="btn-show-qr">🔲 Show QR</button>
+        <button class="btn" id="btn-quick-sim">🧪 Quick Drop</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h4 style="font-size: 13px; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Sequential Uses</h4>
+        <span style="font-size: 11px; color: var(--text-muted);">Strictly ordered by created_at ASC</span>
+      </div>
+
+      <div id="entries-feed"></div>
+    </div>
+
+    <!-- TAB 2: Visitor Form -->
+    <div id="tab-visitor" class="tab-content">
+      <div class="card" style="margin-bottom: 12px;">
+        <h3 style="font-size: 16px; margin-bottom: 4px;">Visitor Experience</h3>
+        <p style="font-size: 13px; color: var(--text-secondary);">
+          This is the exact mobile web screen (< 15 KB, 0 dependencies) visitors see when scanning the Leaving QR code on their way out.
+        </p>
+      </div>
+
+      <form id="demo-visitor-form" class="visitor-preview-card">
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+            <span>NOTE</span>
+            <span id="char-count">0/280</span>
+          </div>
+          <textarea id="visitor-note" placeholder="Drop a thought about the load or hole, or leave blank..." maxlength="280"></textarea>
+        </div>
+
+        <div>
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">TAGS (OPTIONAL)</div>
+          <div class="chips" id="visitor-tag-chips"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: var(--text-secondary);">LOAD # (OPTIONAL)</span>
+          <div class="step-input">
+            <button type="button" class="step-btn" id="btn-step-minus">-</button>
+            <input type="text" id="visitor-load-num" class="num-val" placeholder="auto" readonly />
+            <button type="button" class="step-btn" id="btn-step-plus">+</button>
+          </div>
+        </div>
+
+        <div style="background: #0d0f15; padding: 10px 12px; border-radius: 8px; border: 1px solid #252a3a; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; color: #8892b0;">Voice note optional</span>
+          <button type="button" class="btn btn-sm" id="btn-demo-voice">🎙️ Record</button>
+        </div>
+
+        <button type="submit" class="btn-submit-visitor">Submit Anonymous Drop</button>
+        <div style="font-size: 11px; text-align: center; color: #555d72;">Accepts blank submissions as silent use markers. Zero tracking.</div>
+      </form>
+    </div>
+
+    <!-- TAB 3: Local Server Instructions -->
+    <div id="tab-local" class="tab-content">
+      <div class="card">
+        <h3 style="font-size: 17px; margin-bottom: 8px;">Run Local-First on Your Phone / Laptop</h3>
+        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+          Leaving QR is designed for airplane-mode, local-first operation. The host device runs an embedded Node.js HTTP server. 
+          The database is authenticated and encrypted on disk using <strong>AES-256-GCM</strong> with <strong>PBKDF2</strong> (100,000 iterations). 
+          No cloud accounts or external servers required.
+        </p>
+
+        <h4 style="font-size: 13px; color: #fff; text-transform: uppercase; margin-top: 14px;">1. Clone & Install</h4>
+        <div class="code-block">git clone https://github.com/westkitty/Private_Load.git
+cd Private_Load
+npm install</div>
+
+        <h4 style="font-size: 13px; color: #fff; text-transform: uppercase; margin-top: 14px;">2. Start Local Server</h4>
+        <div class="code-block">npm start</div>
+
+        <h4 style="font-size: 13px; color: #fff; text-transform: uppercase; margin-top: 14px;">3. Test Suite</h4>
+        <div class="code-block">npm test</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div class="qr-modal" id="qr-modal">
+    <div class="qr-box">
+      <h3 style="font-size: 18px; margin-bottom: 4px;">LEAVING QR</h3>
+      <p style="font-size: 12px; color: #666;">On your way out</p>
+      <canvas id="qr-canvas" width="200" height="200"></canvas>
+      <p style="font-size: 12px; color: #444; margin-top: 8px;">Scan to leave an anonymous note.<br>No app install. No cloud.</p>
+      <button class="btn btn-primary btn-sm" id="btn-close-qr" style="margin-top: 14px; width: 100%;">Close</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Demo State
+      const state = {
+        loads: 3,
+        comments: 2,
+        proof: 1,
+        entries: [
+          { id: 1, load: 1, source: 'visitor', body: 'tight, took it raw', tags: ['Raw'], time: '2:14 PM', note: null },
+          { id: 2, load: 2, source: 'visitor', body: null, tags: [], time: '2:31 PM', note: null },
+          { id: 3, load: 3, source: 'visitor', body: 'second load, kept it in', tags: ['Kept inside'], time: '2:48 PM', note: 'Filled deep, kept in for 20 mins' }
+        ],
+        availableTags: ['Raw', 'Kept inside', 'Leaked', 'Pushed back', 'Rough', 'Quick', 'Came back', 'Already open', 'Public', 'Car', 'Group', 'Load #'],
+        selectedVisitorTags: new Set()
+      };
+
+      // Tab switcher
+      const navBtns = document.querySelectorAll('.nav-btn');
+      const tabs = document.querySelectorAll('.tab-content');
+      navBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          navBtns.forEach(b => b.classList.remove('active'));
+          tabs.forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
+        });
+      });
+
+      // Render feed
+      const feed = document.getElementById('entries-feed');
+      function renderFeed() {
+        document.getElementById('stat-loads').textContent = state.loads;
+        document.getElementById('stat-comments').textContent = state.comments;
+        document.getElementById('stat-proof').textContent = state.proof;
+
+        feed.innerHTML = state.entries.map(e => `
+          <div class="entry-card">
+            <div class="entry-header">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="load-badge">#${e.load}</span>
+                <span class="source-badge ${e.source}">${e.source === 'visitor' ? 'Visitor' : 'Host Manual'}</span>
+              </div>
+              <span class="entry-time">${e.time}</span>
+            </div>
+            <div class="entry-body ${e.body ? '' : 'empty'}">${e.body ? escapeHtml(e.body) : 'Anonymous silent use'}</div>
+            ${e.tags && e.tags.length ? `<div class="chips">${e.tags.map(t => `<span class="chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+            ${e.note ? `<div class="host-note-box"><strong>Host Note:</strong> ${escapeHtml(e.note)}</div>` : ''}
+          </div>
+        `).join('');
+      }
+
+      function escapeHtml(s) {
+        return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // Manual +1 Load
+      document.getElementById('btn-manual-load').addEventListener('click', () => {
+        state.loads++;
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.entries.push({
+          id: Date.now(),
+          load: state.loads,
+          source: 'host',
+          body: null,
+          tags: [],
+          time: now,
+          note: null
+        });
+        renderFeed();
+      });
+
+      // Quick Drop Simulator
+      const presets = [
+        'still leaking from the last guy',
+        'pushed it back in',
+        'quick',
+        'came back for another',
+        'used you while you were open',
+        'group turn'
+      ];
+      document.getElementById('btn-quick-sim').addEventListener('click', () => {
+        const text = presets[Math.floor(Math.random() * presets.length)];
+        const tag = state.availableTags[Math.floor(Math.random() * state.availableTags.length)];
+        state.loads++;
+        state.comments++;
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.entries.push({
+          id: Date.now(),
+          load: state.loads,
+          source: 'visitor',
+          body: text,
+          tags: [tag],
+          time: now,
+          note: null
+        });
+        renderFeed();
+      });
+
+      // Visitor Form setup
+      const tagsContainer = document.getElementById('visitor-tag-chips');
+      state.availableTags.forEach(tag => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = tag;
+        chip.style.cursor = 'pointer';
+        chip.addEventListener('click', () => {
+          if (state.selectedVisitorTags.has(tag)) {
+            state.selectedVisitorTags.delete(tag);
+            chip.classList.remove('selected');
+          } else {
+            state.selectedVisitorTags.add(tag);
+            chip.classList.add('selected');
+          }
+        });
+        tagsContainer.appendChild(chip);
+      });
+
+      const noteInput = document.getElementById('visitor-note');
+      const charCount = document.getElementById('char-count');
+      noteInput.addEventListener('input', () => {
+        charCount.textContent = `${noteInput.value.length}/280`;
+      });
+
+      const form = document.getElementById('demo-visitor-form');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.loads++;
+        const text = noteInput.value.trim();
+        if (text) state.comments++;
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        state.entries.push({
+          id: Date.now(),
+          load: state.loads,
+          source: 'visitor',
+          body: text || null,
+          tags: Array.from(state.selectedVisitorTags),
+          time: now,
+          note: null
+        });
+
+        // Reset form
+        noteInput.value = '';
+        charCount.textContent = '0/280';
+        state.selectedVisitorTags.clear();
+        tagsContainer.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+
+        renderFeed();
+        // Switch to host tab to see result
+        document.querySelector('[data-tab="tab-host"]').click();
+      });
+
+      // QR Modal Simulation
+      const qrModal = document.getElementById('qr-modal');
+      const canvas = document.getElementById('qr-canvas');
+      const ctx = canvas.getContext('2d');
+
+      function drawMockQR() {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, 200, 200);
+        // Draw recognizable QR finder patterns
+        const drawFinder = (x, y) => {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x, y, 50, 50);
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(x + 7, y + 7, 36, 36);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x + 14, y + 14, 22, 22);
+        };
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = '#000000';
+        drawFinder(10, 10);
+        drawFinder(140, 10);
+        drawFinder(10, 140);
+        // Random modules
+        for (let i = 0; i < 20; i++) {
+          for (let j = 0; j < 20; j++) {
+            if ((i < 7 && j < 7) || (i > 13 && j < 7) || (i < 7 && j > 13)) continue;
+            if (Math.random() > 0.5) {
+              ctx.fillRect(i * 9 + 10, j * 9 + 10, 8, 8);
+            }
+          }
+        }
+      }
+
+      document.getElementById('btn-show-qr').addEventListener('click', () => {
+        drawMockQR();
+        qrModal.style.display = 'flex';
+      });
+      document.getElementById('btn-close-qr').addEventListener('click', () => {
+        qrModal.style.display = 'none';
+      });
+
+      // Initial render
+      renderFeed();
+    })();
+  </script>
+</body>
+</html>
