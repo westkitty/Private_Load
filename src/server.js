@@ -74,31 +74,45 @@ function createApp(options = {}) {
 
 // Start standalone server if invoked directly
 if (require.main === module) {
-  const { app, port, qrService } = createApp();
-  const server = http.createServer(app);
+  function startServer(attemptPort) {
+    const { app, port, qrService } = createApp({ port: attemptPort });
+    const server = http.createServer(app);
 
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`=======================================================`);
-    console.log(` Leaving QR — Private Sequential Load Guestbook`);
-    console.log(`=======================================================`);
-    console.log(` Host Web Interface:  http://localhost:${port}/host`);
-    console.log(` Local Network IP:    ${qrService.hostIp}`);
-    console.log(` Visitor Base URL:    http://${qrService.hostIp}:${port}/l/<token>`);
-    console.log(` Encrypted Database:  aes-256-gcm authenticated`);
-    console.log(` Status:              Ready for sequential logging`);
-    console.log(`=======================================================`);
-  });
-
-  // Graceful shutdown
-  const shutdown = () => {
-    console.log('\nShutting down Leaving QR securely...');
-    server.close(() => {
-      process.exit(0);
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE' && attemptPort === 3000) {
+        console.log(`Port 3000 in use, falling back to port 3030...`);
+        startServer(3030);
+      } else {
+        console.error('Server error:', err);
+      }
     });
-  };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+    server.listen(attemptPort, '0.0.0.0', () => {
+      console.log(`=======================================================`);
+      console.log(` Leaving QR — Private Sequential Load Guestbook`);
+      console.log(`=======================================================`);
+      console.log(` Host Web Interface:  http://localhost:${attemptPort}/host`);
+      console.log(` Local Network IP:    ${qrService.hostIp}`);
+      console.log(` Visitor Base URL:    http://${qrService.hostIp}:${attemptPort}/l/<token>`);
+      console.log(` Encrypted Database:  aes-256-gcm authenticated`);
+      console.log(` Status:              Ready for sequential logging`);
+      console.log(`=======================================================`);
+    });
+
+    // Graceful shutdown
+    const shutdown = () => {
+      console.log('\nShutting down Leaving QR securely...');
+      server.close(() => {
+        process.exit(0);
+      });
+    };
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
+  }
+
+  const initialPort = Number(process.env.PORT) || 3000;
+  startServer(initialPort);
 }
 
 module.exports = createApp;
